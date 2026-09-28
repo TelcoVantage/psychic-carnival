@@ -1,0 +1,97 @@
+{
+  "name": "Check Caller Recent Activity",
+  "integrationType": "purecloud-data-actions",
+  "actionType": "custom",
+  "config": {
+    "request": {
+      "requestUrlTemplate": "/api/v2/analytics/conversations/details/query",
+      "requestType": "POST",
+      "headers": {},
+      "requestTemplate": "#set($ani = $input.ani.trim())\n#if($ani.indexOf(\":\") == -1)\n#set($ani = \"tel:$ani\")\n#end\n{\n  \"interval\": \"$esc.jsonString($input.intervalStart.trim())/$esc.jsonString($input.intervalEnd.trim())\",\n  \"order\": \"desc\",\n  \"orderBy\": \"conversationStart\",\n  \"paging\": {\n    \"pageSize\": 25,\n    \"pageNumber\": 1\n  },\n  \"conversationFilters\": [\n    {\n      \"type\": \"and\",\n      \"predicates\": [\n        {\n          \"type\": \"dimension\",\n          \"dimension\": \"conversationEnd\",\n          \"operator\": \"exists\"\n        }\n      ]\n    }\n  ],\n  \"segmentFilters\": [\n    {\n      \"type\": \"and\",\n      \"predicates\": [\n        {\n          \"type\": \"dimension\",\n          \"dimension\": \"direction\",\n          \"operator\": \"matches\",\n          \"value\": \"inbound\"\n        },\n        {\n          \"type\": \"dimension\",\n          \"dimension\": \"mediaType\",\n          \"operator\": \"matches\",\n          \"value\": \"voice\"\n        },\n        {\n          \"type\": \"dimension\",\n          \"dimension\": \"ani\",\n          \"operator\": \"matches\",\n          \"value\": \"$esc.jsonString($ani)\"\n        }\n      ]\n    }\n  ]\n}\n"
+    },
+    "response": {
+      "translationMap": {
+        "totalHits": "$.totalHits",
+        "conversationIds": "$.conversations[*].conversationId",
+        "lastCallConversationId": "$.conversations[0].conversationId",
+        "lastCallStart": "$.conversations[0].conversationStart",
+        "lastCallEnd": "$.conversations[0].conversationEnd"
+      },
+      "translationMapDefaults": {
+        "totalHits": "0",
+        "conversationIds": "[]",
+        "lastCallConversationId": "\"\"",
+        "lastCallStart": "\"\"",
+        "lastCallEnd": "\"\""
+      },
+      "successTemplate": "{\n  \"hasCalledRecently\": #if($math.toInteger($totalHits) > 0)true#{else}false#end,\n  \"priorCallCount\": $math.toInteger($totalHits),\n  \"lastCallConversationId\": ${lastCallConversationId},\n  \"lastCallStart\": ${lastCallStart},\n  \"lastCallEnd\": ${lastCallEnd},\n  \"conversationIds\": ${conversationIds}\n}\n"
+    }
+  },
+  "contract": {
+    "input": {
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "title": "Check Caller Recent Activity - Input",
+        "type": "object",
+        "properties": {
+          "ani": {
+            "type": "string",
+            "description": "Caller's ANI exactly as Genesys Cloud records it, e.g. tel:+15551234567. In Architect pass Call.Ani. A bare number is prefixed with tel: automatically."
+          },
+          "intervalStart": {
+            "type": "string",
+            "description": "Start of the look-back window, ISO-8601 UTC. Compute at run time in Architect: ToString(AddMinutes(GetCurrentDateTimeUtc(), -30))"
+          },
+          "intervalEnd": {
+            "type": "string",
+            "description": "End of the look-back window, ISO-8601 UTC. Compute at run time in Architect: ToString(GetCurrentDateTimeUtc())"
+          }
+        },
+        "required": [
+          "ani",
+          "intervalStart",
+          "intervalEnd"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "output": {
+      "successSchema": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "title": "Check Caller Recent Activity - Output",
+        "type": "object",
+        "properties": {
+          "hasCalledRecently": {
+            "type": "boolean",
+            "description": "True when at least one completed inbound voice call from this ANI started inside the window."
+          },
+          "priorCallCount": {
+            "type": "integer",
+            "description": "Number of completed inbound voice calls from this ANI inside the window (excludes the in-progress call)."
+          },
+          "lastCallConversationId": {
+            "type": "string",
+            "description": "Conversation ID of the most recent matching call, or empty string."
+          },
+          "lastCallStart": {
+            "type": "string",
+            "description": "conversationStart of the most recent matching call (ISO-8601), or empty string."
+          },
+          "lastCallEnd": {
+            "type": "string",
+            "description": "conversationEnd of the most recent matching call (ISO-8601), or empty string."
+          },
+          "conversationIds": {
+            "type": "array",
+            "description": "Conversation IDs of matching calls, most recent first (max 25).",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "secure": false
+}

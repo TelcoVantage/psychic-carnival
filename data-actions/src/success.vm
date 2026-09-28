@@ -1,0 +1,8 @@
+{
+  "hasCalledRecently": #if($math.toInteger($totalHits) > 0)true#{else}false#end,
+  "priorCallCount": $math.toInteger($totalHits),
+  "lastCallConversationId": ${lastCallConversationId},
+  "lastCallStart": ${lastCallStart},
+  "lastCallEnd": ${lastCallEnd},
+  "conversationIds": ${conversationIds}
+}

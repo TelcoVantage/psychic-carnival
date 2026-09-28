@@ -1,0 +1,62 @@
+## ------------------------------------------------------------------
+## Check Caller Recent Activity - request template
+## Target: POST /api/v2/analytics/conversations/details/query
+##
+## The 30-minute window is NOT hard-coded here. Genesys Cloud data
+## action templates expose no clock ($date is not available), so the
+## calling Architect flow computes the UTC window on every execution:
+##   intervalStart = ToString(AddMinutes(GetCurrentDateTimeUtc(), -30))
+##   intervalEnd   = ToString(GetCurrentDateTimeUtc())
+## ------------------------------------------------------------------
+#set($ani = $input.ani.trim())
+## Architect's Call.Ani is already "tel:+15551234567". If a bare number
+## was passed, prefix it so it matches the analytics "ani" dimension.
+#if($ani.indexOf(":") == -1)
+#set($ani = "tel:$ani")
+#end
+{
+  "interval": "$esc.jsonString($input.intervalStart.trim())/$esc.jsonString($input.intervalEnd.trim())",
+  "order": "desc",
+  "orderBy": "conversationStart",
+  "paging": {
+    "pageSize": 25,
+    "pageNumber": 1
+  },
+  "conversationFilters": [
+    {
+      "type": "and",
+      "predicates": [
+        {
+          "type": "dimension",
+          "dimension": "conversationEnd",
+          "operator": "exists"
+        }
+      ]
+    }
+  ],
+  "segmentFilters": [
+    {
+      "type": "and",
+      "predicates": [
+        {
+          "type": "dimension",
+          "dimension": "direction",
+          "operator": "matches",
+          "value": "inbound"
+        },
+        {
+          "type": "dimension",
+          "dimension": "mediaType",
+          "operator": "matches",
+          "value": "voice"
+        },
+        {
+          "type": "dimension",
+          "dimension": "ani",
+          "operator": "matches",
+          "value": "$esc.jsonString($ani)"
+        }
+      ]
+    }
+  ]
+}
