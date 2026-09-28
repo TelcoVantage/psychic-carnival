@@ -1,0 +1,84 @@
+{
+  "name": "Standard Inbound Script",
+  "description": "Plain inbound agent script: the out-of-the-box call details, one web link, and a disclaimer the agent reads to the customer.",
+  "scriptProperties": {
+    "Inbound": true,
+    "Allow inbound Architect flows to select a script": true,
+    "Callback": false,
+    "Outbound": false,
+    "Chat": false,
+    "Email": false,
+    "Message": false
+  },
+  "replaceBeforeBuilding": {
+    "PAGE_URL": "https://example.com/your-page",
+    "PAGE_LINK_TEXT": "Open the reference page",
+    "DISCLAIMER_TEXT": "Before we go any further, I need to let you know that this call may be recorded and monitored for quality and training purposes. By continuing with this call you agree to that. Are you happy to proceed?"
+  },
+  "pages": [
+    {
+      "name": "Main",
+      "isStartPage": true,
+      "layout": "Vertical Stack",
+      "components": [
+        {
+          "order": 1,
+          "type": "Read-only Text",
+          "text": "Call Details",
+          "style": { "bold": true, "fontSize": "large" }
+        },
+        {
+          "order": 2,
+          "type": "Read-only Text",
+          "text": "Interaction Type: {{Scripter.Interaction Type}}"
+        },
+        {
+          "order": 3,
+          "type": "Read-only Text",
+          "text": "Interaction State: {{Scripter.Interaction State}}"
+        },
+        {
+          "order": 4,
+          "type": "Read-only Text",
+          "text": "Queue: {{Scripter.Queue Name}}"
+        },
+        {
+          "order": 5,
+          "type": "Read-only Text",
+          "text": "Customer Number: {{Scripter.Customer Formatted Number}}"
+        },
+        {
+          "order": 6,
+          "type": "Read-only Text",
+          "text": "Interaction ID: {{Scripter.Interaction Id}}",
+          "style": { "fontSize": "small" }
+        },
+        {
+          "order": 7,
+          "type": "Link",
+          "text": "PAGE_LINK_TEXT",
+          "clickAction": { "kind": "URL", "url": "PAGE_URL" },
+          "layout": { "marginTop": 16 }
+        },
+        {
+          "order": 8,
+          "type": "Read-only Text",
+          "text": "Disclaimer - read this to the customer",
+          "style": { "bold": true },
+          "layout": { "marginTop": 16 }
+        },
+        {
+          "order": 9,
+          "type": "Read-only Text",
+          "text": "\"DISCLAIMER_TEXT\"",
+          "style": { "italic": true, "textColor": "#8A1C1C" }
+        }
+      ]
+    }
+  ],
+  "publish": true,
+  "assignment": {
+    "queue": "Admin > Contact Center > Queues > (queue) > Voice > Default Script",
+    "architect": "Inbound Call flow > Set Screen Pop action (choose this script) placed before Transfer to ACD"
+  }
+}

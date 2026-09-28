@@ -12,7 +12,11 @@ data-actions/src/success.vm                      success template
 architect/flow-wiring.md                         exact Architect steps, variables, expressions
 scripts/build.py                                 rebuilds/validates the export from src/
 scripts/deploy-and-test.sh                       optional: create + test the action via the Platform API
+agent-scripts/                                   Standard Inbound Script: agent script spec + build guide
 ```
+
+Also in this repo: **`agent-scripts/`**, a plain inbound agent script (standard
+call details, a web link, a read-out disclaimer). See `agent-scripts/README.md`.
 
 ## How it works
 
