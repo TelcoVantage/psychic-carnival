@@ -11,7 +11,10 @@ data-actions/src/request.vm                      request template (readable, com
 data-actions/src/success.vm                      success template
 architect/flow-wiring.md                         exact Architect steps, variables, expressions
 scripts/build.py                                 rebuilds/validates the export from src/
-scripts/deploy-and-test.sh                       optional: create + test the action via the Platform API
+scripts/deploy-and-test.sh                       optional: create + test the action via the Platform API (bash)
+powershell/GcCommon.ps1                          CLM-safe helpers: pure-PowerShell Base64, token, API call, errors
+powershell/Test-GcCallerRecentActivity.ps1       run the 30-minute caller check from PowerShell, optional CSV
+powershell/Publish-GcDataAction.ps1              create/update, test and publish the action via the API
 ```
 
 ## How it works
@@ -78,6 +81,43 @@ To create and test the action from a terminal instead, see
 `scripts/deploy-and-test.sh` (needs an OAuth client-credentials grant with
 `integrations:action:add`, `integrations:action:edit`,
 `integrations:action:test` and `integrations:integration:view`).
+
+## PowerShell (Constrained Language Mode safe)
+
+The `powershell/` scripts target Windows PowerShell 5.1 on AppLocker/WDAC
+locked-down endpoints running in Constrained Language Mode:
+
+* no .NET static calls, `::new()` or `[pscustomobject]` casts; objects are
+  built with `New-Object PSObject -Property` and column order is fixed with
+  `Select-Object` before `Export-Csv`
+* the OAuth Basic header is Base64-encoded in pure PowerShell (UTF-8 encoder
+  plus `-shl`/`-shr`/`-band`/`-bor`), verified against .NET output for 306
+  vectors including multi-byte and emoji characters
+* HTTP status comes from `[int]$_.Exception.Response.StatusCode` in try/catch
+  with a regex fallback on the message; 429 responses are retried with backoff
+* every response is validated (`access_token`, `id`, `version`, `success`)
+  before it is used
+
+Check a caller directly (same query the data action runs, window computed at
+run time):
+
+```powershell
+.\powershell\Test-GcCallerRecentActivity.ps1 -Region mypurecloud.ie `
+    -ClientId $id -ClientSecret $secret -Ani 'tel:+447700900123' -OutCsv .\recent.csv
+```
+
+Create, test and publish the data action:
+
+```powershell
+.\powershell\Publish-GcDataAction.ps1 -Region mypurecloud.com `
+    -ClientId $id -ClientSecret $secret -IntegrationId '<data actions integration id>' `
+    -TestAni 'tel:+15551234567' -Publish
+```
+
+Both accept `-ApiBaseUri`/`-LoginBaseUri` overrides for proxies or testing.
+If Windows PowerShell 5.1 reports a TLS handshake failure, enable TLS 1.2 as
+the system default (`SchUseStrongCrypto` / `SystemDefaultTlsVersions`
+registry values), since `[Net.ServicePointManager]` cannot be set in CLM.
 
 ## Behaviour details and limits
 

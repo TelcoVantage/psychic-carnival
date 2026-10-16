@@ -46,6 +46,14 @@ if [[ -z "${GC_ACTION_ID:-}" ]]; then
   echo "Created action ${GC_ACTION_ID}"
 else
   echo "Updating draft of action ${GC_ACTION_ID}"
+  DRAFT_VERSION=$(curl -sS -f "${API}/api/v2/integrations/actions/${GC_ACTION_ID}/draft" "${AUTH[@]}" \
+    | python3 -c 'import json,sys;print(json.load(sys.stdin)["version"])')
+  BODY=$(python3 - "$BODY" "$DRAFT_VERSION" <<'PY'
+import json, sys
+d = json.loads(sys.argv[1]); d["version"] = int(sys.argv[2])
+print(json.dumps(d))
+PY
+)
   curl -sS -f -X PATCH "${API}/api/v2/integrations/actions/${GC_ACTION_ID}/draft" "${AUTH[@]}" -d "$BODY" >/dev/null
 fi
 
